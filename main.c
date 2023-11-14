@@ -3,9 +3,15 @@
 #include <input.h>
 #include <system_server.h>
 
+void sigchldHandler(int sig){
+    printf("handler: Caught SIGCHLD : %d\nhandler: returning\n",sig);
+}
+
 int main(){
 
     __pid_t input_pid, ss_pid, ui_pid, ws_pid;
+
+    signal(SIGCHLD, sigchldHandler);
 
     if ((input_pid = create_input()) <= 0){
         printf("create input error\n");

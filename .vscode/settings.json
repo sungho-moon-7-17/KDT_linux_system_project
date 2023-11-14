@@ -4,6 +4,13 @@
         "unistd.h": "c",
         "tlpi_hdr.h": "c",
         "webserver.h": "c",
-        "default.h": "c"
+        "default.h": "c",
+        "input.h": "c",
+        "execinfo.h": "c",
+        "ucontext.h": "c",
+        "prctl.h": "c",
+        "stdio.h": "c",
+        "signal.h": "c",
+        "stdlib.h": "c"
     }
 }

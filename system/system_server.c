@@ -19,8 +19,12 @@ __pid_t create_system_server(){
     system_server_pid = fork();
     if (system_server_pid == -1)
         return -1;
-    else if (system_server_pid == 0)
+    else if (system_server_pid == 0){
+        if (prctl(PR_SET_NAME, (unsigned long) "system_server") == -1){
+            perror("prctl");
+        }
         system_server();
+    }
     
     return system_server_pid;
 }

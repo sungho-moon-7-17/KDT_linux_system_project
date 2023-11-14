@@ -5,5 +5,10 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <sys/wait.h>
+#include <signal.h>
+#include <sys/prctl.h>
+#include <execinfo.h>
+#include <string.h>
+#include <ucontext.h>
 
 #endif
