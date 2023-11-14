@@ -7,19 +7,21 @@ SRC_O = $(SRC:.c=.o)
 INC_DIRS = $(dir $(shell find . -name "*.h"))
 INC = $(addprefix -I ,$(INC_DIRS))
 
+ELF = toy_system
+
 all : main
 
 main : main_cc
-	./main.out
+	./$(ELF)
 
 mdb : main_cc
-	$(DB) ./main.out
+	$(DB) ./$(ELF)
 
 main_cc: $(SRC_O)
-	$(CC) $^ -o main.out
+	$(CC) $^ -o $(ELF)
 
 %.o: %.c
 	$(CC) -c $< -o $@ $(INC)
 
 clean :
-	rm -rf *.out *.dSYM main *.o $(SRC_O) filebrowser.db
+	rm -rf *.out *.dSYM main *.o $(SRC_O) filebrowser.db $(ELF)
