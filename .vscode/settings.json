@@ -3,6 +3,7 @@
         "*.json": "json",
         "unistd.h": "c",
         "tlpi_hdr.h": "c",
-        "webserver.h": "c"
+        "webserver.h": "c",
+        "default.h": "c"
     }
 }

@@ -22,4 +22,4 @@ main_cc: $(SRC_O)
 	$(CC) -c $< -o $@ $(INC)
 
 clean :
-	rm -rf *.out *.dSYM main *.o $(SRC_O)
+	rm -rf *.out *.dSYM main *.o $(SRC_O) filebrowser.db
