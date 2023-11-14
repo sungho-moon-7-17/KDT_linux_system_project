@@ -10,5 +10,6 @@
 #include <execinfo.h>
 #include <string.h>
 #include <ucontext.h>
+#include <time.h>
 
 #endif

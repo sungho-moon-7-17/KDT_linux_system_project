@@ -2,13 +2,13 @@
     "version": "0.2.0",
     "configurations": [
       {
-        "name": "main",
+        "name": "toy_system",
         "type": "cppdbg",
         "request": "launch",
-        "program": "${workspaceFolder}/main.out",
+        "program": "${workspaceFolder}/toy_system",
         "args": [
         ],
-        "stopAtEntry": true,
+        "stopAtEntry": false,
         "cwd": "${workspaceFolder}",
         "environment": [],
         "externalConsole": false,
