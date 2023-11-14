@@ -1,0 +1,8 @@
+{
+    "files.associations": {
+        "*.json": "json",
+        "unistd.h": "c",
+        "tlpi_hdr.h": "c",
+        "webserver.h": "c"
+    }
+}
