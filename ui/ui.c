@@ -10,7 +10,7 @@ __pid_t create_ui(){
     if (ui_pid == -1)
         return -1;
     else if (ui_pid == 0){
-        execl("/usr/bin/google-chrome-stable", "google_chrome-stable", "http://localhost:8282", NULL);
+        execl("/usr/bin/google-chrome-stable", "google_chrome-stable", "http://localhost:8282", (char *)NULL);
     }
     
     return ui_pid;

@@ -10,7 +10,7 @@ __pid_t create_web_server(){
     if (web_server_pid == -1)
         return -1;
     else if (web_server_pid == 0){
-        execl("/usr/local/bin/filebrowser", "filebrowser", "-p", "8282", NULL);
+        execl("/usr/local/bin/filebrowser", "filebrowser", "-p", "8282", (char *)NULL);
     }
     
     return web_server_pid;
