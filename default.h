@@ -1,6 +1,8 @@
 #ifndef _DEFAULT_H
 #define _DEFAULT_H
 
+#define _POSIX_C_SOURCE 199309
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>

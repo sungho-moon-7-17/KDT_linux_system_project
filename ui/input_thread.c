@@ -1,16 +1,40 @@
 #include <input_thread.h>
 
+static pthread_mutex_t g_sensor_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+int mssleep(unsigned int ms){
+    struct timespec time_set;
+
+    time_set.tv_sec = ms / 1000;
+    time_set.tv_nsec = (ms % 1000) * 1000 * 1000;
+
+    return nanosleep(&time_set,NULL);
+}
+
 /*
  *  sensor thread
  */
 void *sensor_thread(void* arg)
 {
+    char saved_message[TOY_BUFFSIZE];
     char *s = arg;
+    int i = 0;
 
     printf("%s", s);
 
     while (1) {
-        sleep(1);
+        i = 0;
+        // 여기서 뮤텍스
+        // 과제를 억지로 만들기 위해 한 글자씩 출력 후 슬립
+        while (global_message[i] != NULL) {
+            pthread_mutex_lock(&g_sensor_mutex);
+            printf("%c", global_message[i]);
+            fflush(stdout);
+            mssleep(500);
+            i++;
+            pthread_mutex_unlock(&g_sensor_mutex);
+        }
+        mssleep(5000);
     }
 
     return 0;
@@ -23,6 +47,7 @@ void *sensor_thread(void* arg)
 
 char *builtin_str[] = {
     "send",
+    "mu",
     "sh",
     "exit"
 };
@@ -30,6 +55,7 @@ char *builtin_str[] = {
 
 int (*builtin_func[]) (char **) = {
     &toy_send,
+    &toy_mutex,
     &toy_shell,
     &toy_exit
 };
@@ -43,6 +69,20 @@ int toy_send(char **args)
 {
     printf("send message: %s\n", args[1]);
 
+    return 1;
+}
+
+
+int toy_mutex(char **args)
+{
+    if (args[1] == NULL) {
+        return 1;
+    }
+
+    printf("save message: %s\n", args[1]);
+    pthread_mutex_lock(&g_sensor_mutex);
+    strcpy(global_message, args[1]);
+    pthread_mutex_unlock(&g_sensor_mutex);
     return 1;
 }
 

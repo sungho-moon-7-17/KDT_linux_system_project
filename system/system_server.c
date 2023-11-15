@@ -1,7 +1,9 @@
-#define _POSIX_C_SOURCE 199309
 #include <system_server.h>
 
 #define TIMER_TEST 0
+
+int g_timer_count = 0;
+static pthread_mutex_t g_timer_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 #pragma region thread
 void * watchdog_thread(void * arg){
@@ -36,7 +38,9 @@ void * camera_service_thread(void * arg){
 #pragma endregion
 
 void sigalrm_handler(){
-    printf("I'm 시계에요\n\n");
+    pthread_mutex_lock(&g_timer_mutex);
+    g_timer_count++;
+    pthread_mutex_unlock(&g_timer_mutex);
 }
 
 void set_timer_sec(struct itimerspec *ts, __time_t inter_sec){

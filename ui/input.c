@@ -4,7 +4,7 @@ typedef struct _sig_ucontext {
     unsigned long uc_flags;
     struct ucontext *uc_link;
     stack_t uc_stack;
-    struct sigcontext uc_mcontext;
+    // struct sigcontext uc_mcontext;
     sigset_t uc_sigmask;
 } sig_ucontext_t;
 
@@ -18,7 +18,7 @@ void segfault_handler(int sig_num, siginfo_t * info, void * ucontext) {
   uc = (sig_ucontext_t *) ucontext;
 
   /* Get the address at the time the signal was raised */
-  caller_address = (void *) uc->uc_mcontext.rip;  // RIP: x86_64 specific     arm_pc: ARM
+  // caller_address = (void *) uc->uc_mcontext.rip;  // RIP: x86_64 specific     arm_pc: ARM
 
   fprintf(stderr, "\n");
 
@@ -55,7 +55,7 @@ void input(){
   // create thread - command line , sensor
   t_error += pthread_attr_init(&attr);
   t_error += pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-  // t_error += pthread_create(&t_cli, &attr, command_thread, (void *) "HI command_thread start\n");
+  t_error += pthread_create(&t_cli, &attr, command_thread, (void *) "HI command_thread start\n");
   t_error += pthread_create(&t_ssor, &attr, sensor_thread, (void *) "HI sensor_thread start\n");
   if (t_error != 0){
     perror("create thread error\n");
