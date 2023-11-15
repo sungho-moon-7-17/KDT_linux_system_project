@@ -4,7 +4,7 @@ typedef struct _sig_ucontext {
     unsigned long uc_flags;
     struct ucontext *uc_link;
     stack_t uc_stack;
-    // struct sigcontext uc_mcontext;
+    struct sigcontext uc_mcontext;
     sigset_t uc_sigmask;
 } sig_ucontext_t;
 
@@ -17,8 +17,9 @@ void segfault_handler(int sig_num, siginfo_t * info, void * ucontext) {
 
   uc = (sig_ucontext_t *) ucontext;
 
+
   /* Get the address at the time the signal was raised */
-  // caller_address = (void *) uc->uc_mcontext.rip;  // RIP: x86_64 specific     arm_pc: ARM
+  caller_address = (void *) uc->uc_mcontext.rip;  // RIP: x86_64 specific     arm_pc: ARM
 
   fprintf(stderr, "\n");
 
