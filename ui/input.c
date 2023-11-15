@@ -44,32 +44,46 @@ void segfault_handler(int sig_num, siginfo_t * info, void * ucontext) {
 }
 
 void input(){
-    printf("enter input\n");
+  pthread_t t_cli, t_ssor;
+  pthread_attr_t attr;
+  int t_error = 0;
 
-    signal(SIGSEGV, segfault_handler);
+  printf("enter input\n");
 
-    while(1){
+  signal(SIGSEGV, segfault_handler);
 
-    }
+  // create thread - command line , sensor
+  t_error += pthread_attr_init(&attr);
+  t_error += pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+  // t_error += pthread_create(&t_cli, &attr, command_thread, (void *) "HI command_thread start\n");
+  t_error += pthread_create(&t_ssor, &attr, sensor_thread, (void *) "HI sensor_thread start\n");
+  if (t_error != 0){
+    perror("create thread error\n");
+    exit(1);
+  }
 
-    exit(0);
+  while(1){
+    sleep(1);
+  }
+
+  exit(0);
 }
 
 __pid_t create_input(){
 
-    __pid_t input_pid;
+  __pid_t input_pid;
 
-    printf("여기서 input_process 생성\n");
+  printf("여기서 input_process 생성\n");
 
-    input_pid = fork();
-    if (input_pid == -1)
-        return -1;
-    else if (input_pid == 0){
-        if (prctl(PR_SET_NAME, (unsigned long) "input") == -1){
-            perror("prctl");
-        }
-        input();
-    }
-    
-    return input_pid;
+  input_pid = fork();
+  if (input_pid == -1)
+      return -1;
+  else if (input_pid == 0){
+      if (prctl(PR_SET_NAME, (unsigned long) "input") == -1){
+          perror("prctl");
+      }
+      input();
+  }
+  
+  return input_pid;
 }

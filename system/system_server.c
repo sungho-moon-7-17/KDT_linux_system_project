@@ -1,12 +1,45 @@
+#define _POSIX_C_SOURCE 199309
 #include <system_server.h>
 
 #define TIMER_TEST 0
+
+#pragma region thread
+void * watchdog_thread(void * arg){
+    printf("%s\n", (char *)arg);
+
+    while(1){
+        sleep (10);
+    }
+}
+void * monitor_thread(void * arg){
+    printf("%s\n", (char *)arg);
+
+    while(1){
+        sleep (10);
+    }
+}
+void * disk_service_thread(void * arg){
+    printf("%s\n", (char *)arg);
+
+    while(1){
+        sleep (10);
+    }
+}
+void * camera_service_thread(void * arg){
+    printf("%s\n", (char *)arg);
+
+    while(1){
+        sleep (10);
+    }
+}
+
+#pragma endregion
 
 void sigalrm_handler(){
     printf("I'm 시계에요\n\n");
 }
 
-void set_inter_sec(struct itimerspec *ts, __time_t inter_sec){
+void set_timer_sec(struct itimerspec *ts, __time_t inter_sec){
     // it_value 가 0이면 timer가 안됨. 이유는?
     ts->it_value.tv_sec = 0;
     ts->it_value.tv_nsec = 1000;
@@ -20,6 +53,10 @@ void system_server(){
     struct sigevent sev;
     struct itimerspec ts;
     timer_t timerID;
+
+    int t_error;
+    pthread_t t_wd, t_m, t_ds, t_cs;
+    pthread_attr_t attr;
 
     printf("응애 나 아기 system_server!\n");
 
@@ -43,9 +80,21 @@ void system_server(){
     }
 
     // set timer
-    set_inter_sec(&ts, 5);
+    set_timer_sec(&ts, 5);
     if (timer_settime(timerID, 0, &ts, NULL) == -1){
         printf("timer_settime Error\n");
+        exit(1);
+    }
+
+    // create thread - command line , sensor
+    t_error += pthread_attr_init(&attr);
+    t_error += pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    t_error += pthread_create(&t_wd, &attr, watchdog_thread, (void *) "HI watchdog_thread start\n");
+    t_error += pthread_create(&t_m, &attr, monitor_thread, (void *) "HI monitor_thread start\n");
+    t_error += pthread_create(&t_ds, &attr, disk_service_thread, (void *) "HI disk_service_thread start\n");
+    t_error += pthread_create(&t_cs, &attr, camera_service_thread, (void *) "HI camera_service_thread start\n");
+    if (t_error != 0){
+        perror("create thread error\n");
         exit(1);
     }
 
