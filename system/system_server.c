@@ -14,7 +14,6 @@
 
 pthread_mutex_t system_loop_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t  system_loop_cond  = PTHREAD_COND_INITIALIZER;
-bool            system_loop_exit = false;    ///< true if main loop should exit
 
 static int toy_timer = 0;
 
@@ -104,7 +103,7 @@ void *camera_service_thread(void* arg)
 void signal_exit(void)
 {
     /* 여기에 구현하세요..  종료 메시지를 보내도록.. */
-    system_loop_exit = true;
+    pthread_cond_signal(&system_loop_cond);
 }
 
 int system_server()
@@ -135,10 +134,11 @@ int system_server()
     printf("system init done.  waiting...");
 
     // 여기에 구현하세요... 여기서 cond wait로 대기한다. 10초 후 알람이 울리면 <== system 출력
-    // /* 1초 마다 wake-up 한다 */
-    while (system_loop_exit == false) {
-        sleep(1);
-    }
+    pthread_mutex_lock(&system_loop_mutex);
+    pthread_cond_wait(&system_loop_cond, &system_loop_mutex);
+    pthread_mutex_unlock(&system_loop_mutex);
+
+    printf("<== system\n");
 
     while (1) {
         sleep(1);

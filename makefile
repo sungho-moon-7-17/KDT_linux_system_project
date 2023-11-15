@@ -15,13 +15,13 @@ ELF = toy_system
 
 all : main
 
-# main : main_cc
-# 	./$(ELF)
+main : main_cc
+	./$(ELF)
 
-# mdb : main_cc
-# 	$(DB) ./$(ELF)
+mdb : main_cc
+	$(DB) ./$(ELF)
 
-main: $(SRC_O) $(SRC_O_CPP)
+main_cc: $(SRC_O) $(SRC_O_CPP)
 	$(CPP) $^ -o $(ELF)
 
 %.o: %.c
