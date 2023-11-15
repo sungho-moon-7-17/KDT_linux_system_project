@@ -1,132 +1,172 @@
+#include <assert.h>
+#include <pthread.h>
+#include <stdio.h>
+#include <sys/prctl.h>
+#include <signal.h>
+#include <sys/time.h>
+#include <time.h>
+
 #include <system_server.h>
+#include <gui.h>
+#include <input.h>
+#include <web_server.h>
+#include <camera_HAL.h>
 
-#define TIMER_TEST 0
+pthread_mutex_t system_loop_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_cond_t  system_loop_cond  = PTHREAD_COND_INITIALIZER;
+bool            system_loop_exit = false;    ///< true if main loop should exit
 
-int g_timer_count = 0;
-static pthread_mutex_t g_timer_mutex = PTHREAD_MUTEX_INITIALIZER;
+static int toy_timer = 0;
 
-#pragma region thread
-void * watchdog_thread(void * arg){
-    printf("%s\n", (char *)arg);
+void signal_exit(void);
 
-    while(1){
-        sleep (10);
+static void timer_expire_signal_handler()
+{
+    toy_timer++;
+    signal_exit();
+}
+
+void set_periodic_timer(long sec_delay, long usec_delay)
+{
+	struct itimerval itimer_val = {
+		 .it_interval = { .tv_sec = sec_delay, .tv_usec = usec_delay },
+		 .it_value = { .tv_sec = sec_delay, .tv_usec = usec_delay }
+    };
+
+	setitimer(ITIMER_REAL, &itimer_val, (struct itimerval*)0);
+}
+
+int posix_sleep_ms(unsigned int timeout_ms)
+{
+    struct timespec sleep_time;
+
+    sleep_time.tv_sec = timeout_ms / MILLISEC_PER_SECOND;
+    sleep_time.tv_nsec = (timeout_ms % MILLISEC_PER_SECOND) * (NANOSEC_PER_USEC * USEC_PER_MILLISEC);
+
+    return nanosleep(&sleep_time, NULL);
+}
+
+void *watchdog_thread(void* arg)
+{
+    char *s = arg;
+
+    printf("%s", s);
+
+    while (1) {
+        posix_sleep_ms(5000);
     }
-}
-void * monitor_thread(void * arg){
-    printf("%s\n", (char *)arg);
 
-    while(1){
-        sleep (10);
+    return 0;
+}
+
+void *monitor_thread(void* arg)
+{
+    char *s = arg;
+
+    printf("%s", s);
+
+    while (1) {
+        posix_sleep_ms(5000);
     }
-}
-void * disk_service_thread(void * arg){
-    printf("%s\n", (char *)arg);
 
-    while(1){
-        sleep (10);
+    return 0;
+}
+
+void *disk_service_thread(void* arg)
+{
+    char *s = arg;
+
+    printf("%s", s);
+
+    while (1) {
+        posix_sleep_ms(5000);
     }
-}
-void * camera_service_thread(void * arg){
-    printf("%s\n", (char *)arg);
 
-    while(1){
-        sleep (10);
+    return 0;
+}
+
+void *camera_service_thread(void* arg)
+{
+    char *s = arg;
+
+    printf("%s", s);
+
+   toy_camera_open();
+   toy_camera_take_picture();
+
+    while (1) {
+        posix_sleep_ms(5000);
     }
+
+    return 0;
 }
 
-#pragma endregion
-
-void sigalrm_handler(){
-    pthread_mutex_lock(&g_timer_mutex);
-    g_timer_count++;
-    pthread_mutex_unlock(&g_timer_mutex);
+void signal_exit(void)
+{
+    /* 여기에 구현하세요..  종료 메시지를 보내도록.. */
+    system_loop_exit = true;
 }
 
-void set_timer_sec(struct itimerspec *ts, __time_t inter_sec){
-    // it_value 가 0이면 timer가 안됨. 이유는?
-    ts->it_value.tv_sec = 0;
-    ts->it_value.tv_nsec = 1000;
-
-    ts->it_interval.tv_sec = inter_sec;
-    ts->it_interval.tv_nsec = 0;
-}
-
-void system_server(){
-    struct sigaction sa;
-    struct sigevent sev;
+int system_server()
+{
     struct itimerspec ts;
-    timer_t timerID;
+    struct sigaction  sa;
+    struct sigevent   sev;
+    timer_t *tidlist;
+    int retcode;
+    pthread_t watchdog_thread_tid, monitor_thread_tid, disk_service_thread_tid, camera_service_thread_tid;
 
-    int t_error;
-    pthread_t t_wd, t_m, t_ds, t_cs;
-    pthread_attr_t attr;
+    printf("나 system_server 프로세스!\n");
 
-    printf("응애 나 아기 system_server!\n");
+    signal(SIGALRM, timer_expire_signal_handler);
+    /* 10초 타이머 등록 */
+    set_periodic_timer(10, 0);
 
-    // set timer signal handler
-    // signal(SIGALRM, sigalrm_handler); - 예전 방식
-    sa.sa_handler = sigalrm_handler;
-    sa.sa_flags = 0;
-    sigemptyset(&sa.sa_mask);
-    if (sigaction(SIGALRM, &sa, NULL) == -1) {
-        perror("sigaction");
-        exit(1);
-    }
+    /* 스레드를 생성한다. */
+    retcode = pthread_create(&watchdog_thread_tid, NULL, watchdog_thread, "watchdog thread\n");
+    assert(retcode == 0);
+    retcode = pthread_create(&monitor_thread_tid, NULL, monitor_thread, "monitor thread\n");
+    assert(retcode == 0);
+    retcode = pthread_create(&disk_service_thread_tid, NULL, disk_service_thread, "disk service thread\n");
+    assert(retcode == 0);
+    retcode = pthread_create(&camera_service_thread_tid, NULL, camera_service_thread, "camera service thread\n");
+    assert(retcode == 0);
 
-    // create timer
-    sev.sigev_notify = SIGEV_SIGNAL;
-    sev.sigev_signo = SIGALRM;
-    sev.sigev_value.sival_ptr = &timerID;
-    if (timer_create(CLOCK_REALTIME, &sev, &timerID) == -1){
-        printf("timer_create Error\n");
-        exit(1);
-    }
+    printf("system init done.  waiting...");
 
-    // set timer
-    set_timer_sec(&ts, 5);
-    if (timer_settime(timerID, 0, &ts, NULL) == -1){
-        printf("timer_settime Error\n");
-        exit(1);
-    }
-
-    // create thread - command line , sensor
-    t_error += pthread_attr_init(&attr);
-    t_error += pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    t_error += pthread_create(&t_wd, &attr, watchdog_thread, (void *) "HI watchdog_thread start\n");
-    t_error += pthread_create(&t_m, &attr, monitor_thread, (void *) "HI monitor_thread start\n");
-    t_error += pthread_create(&t_ds, &attr, disk_service_thread, (void *) "HI disk_service_thread start\n");
-    t_error += pthread_create(&t_cs, &attr, camera_service_thread, (void *) "HI camera_service_thread start\n");
-    if (t_error != 0){
-        perror("create thread error\n");
-        exit(1);
-    }
-
-    // system_server content
-    while (1){
+    // 여기에 구현하세요... 여기서 cond wait로 대기한다. 10초 후 알람이 울리면 <== system 출력
+    // /* 1초 마다 wake-up 한다 */
+    while (system_loop_exit == false) {
         sleep(1);
     }
-    
-    exit(0);
+
+    while (1) {
+        sleep(1);
+    }
+
+    return 0;
 }
 
-__pid_t create_system_server(){
+int create_system_server()
+{
+    pid_t systemPid;
+    const char *name = "system_server";
 
-    __pid_t system_server_pid;
+    printf("여기서 시스템 프로세스를 생성합니다.\n");
 
-    printf("여기서 system_server 생성\n");
-#if TIMER_TEST == 0
-    system_server_pid = fork();
-    if (system_server_pid == -1)
-        return -1;
-    else if (system_server_pid == 0){
-        if (prctl(PR_SET_NAME, (unsigned long) "system_server") == -1){
-            perror("prctl");
-        }
+    /* fork 를 이용하세요 */
+    switch (systemPid = fork()) {
+    case -1:
+        printf("fork failed\n");
+    case 0:
+        /* 프로세스 이름 변경 */
+        if (prctl(PR_SET_NAME, (unsigned long) name) < 0)
+            perror("prctl()");
         system_server();
+        break;
+    default:
+        break;
     }
-#elif TIMER_TEST == 1
-    system_server();
-#endif
-    return system_server_pid;
+
+    return 0;
 }

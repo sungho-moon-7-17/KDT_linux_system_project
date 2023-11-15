@@ -14,6 +14,7 @@
         "stdlib.h": "c",
         "time.h": "c",
         "input_thread.h": "c",
-        "system_server.h": "c"
+        "system_server.h": "c",
+        "iostream": "cpp"
     }
 }

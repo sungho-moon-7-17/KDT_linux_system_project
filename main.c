@@ -1,42 +1,64 @@
-#include <webserver.h>
-#include <ui.h>
-#include <input.h>
-#include <system_server.h>
+#include <stdio.h>
+#include <sys/wait.h>
 
-void sigchld_handler(int sig){
-    printf("handler: Caught SIGCHLD : %d\nhandler: returning\n",sig);
+#include <system_server.h>
+#include <gui.h>
+#include <input.h>
+#include <web_server.h>
+
+static void
+sigchldHandler(int sig)
+{
+    int status, savedErrno;
+    pid_t childPid;
+
+    savedErrno = errno;
+
+    printf("handler: Caught SIGCHLD : %d\n", sig);
+
+    while ((childPid = waitpid(-1, &status, WNOHANG)) > 0) {
+        printf("handler: Reaped child %ld - ", (long) childPid);
+        (NULL, status);
+    }
+
+    if (childPid == -1 && errno != ECHILD)
+        printf("waitpid");
+
+    printf("handler: returning\n");
+
+    errno = savedErrno;
 }
 
-int main(){
+int main()
+{
+    pid_t spid, gpid, ipid, wpid;
+    int status, savedErrno;
+    int sigCnt;
+    sigset_t blockMask, emptyMask;
+    struct sigaction sa;
 
-    __pid_t input_pid, ss_pid, ui_pid, ws_pid;
-
-    signal(SIGCHLD, sigchld_handler);
-
-    if ((input_pid = create_input()) <= 0){
-        printf("create input error\n");
-        return -1;
-    }
-    
-    if ((ss_pid = create_system_server()) <= 0){
-        printf("create input error\n");
-        return -1;
-    }
-
-    if ((ui_pid = create_ui()) <= 0){
-        printf("create input error\n");
-        return -1;
+    sigemptyset(&sa.sa_mask);
+    sa.sa_flags = 0;
+    sa.sa_handler = sigchldHandler;
+    if (sigaction(SIGCHLD, &sa, NULL) == -1) {
+        printf("sigaction");
+        return 0;
     }
 
-    if ((ws_pid = create_web_server()) <= 0){
-        printf("create input error\n");
-        return -1;
-    }
+    printf("메인 함수입니다.\n");
+    printf("시스템 서버를 생성합니다.\n");
+    spid = create_system_server();
+    printf("웹 서버를 생성합니다.\n");
+    wpid = create_web_server();
+    printf("입력 프로세스를 생성합니다.\n");
+    ipid = create_input();
+    printf("GUI를 생성합니다.\n");
+    gpid = create_gui();
 
-    waitpid(input_pid, NULL, NULL);
-    waitpid(ss_pid, NULL, NULL);
-    waitpid(ui_pid, NULL, NULL);
-    waitpid(ws_pid, NULL, NULL);
+    waitpid(spid, &status, 0);
+    waitpid(gpid, &status, 0);
+    waitpid(ipid, &status, 0);
+    waitpid(wpid, &status, 0);
 
     return 0;
 }
