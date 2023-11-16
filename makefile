@@ -8,6 +8,8 @@ SRC_O = $(SRC:.c=.o)
 SRC_CPP = $(shell find ./ -name '*.cpp')
 SRC_O_CPP = $(SRC_CPP:.cpp=.o)
 
+OBJ = $(SRC_O) $(SRC_O_CPP)
+
 INC_DIRS = $(dir $(shell find . -name "*.h"))
 INC = $(addprefix -I ,$(INC_DIRS))
 
@@ -21,7 +23,7 @@ main : main_cc
 mdb : main_cc
 	$(DB) ./$(ELF)
 
-main_cc: $(SRC_O) $(SRC_O_CPP)
+main_cc: $(OBJ)
 	$(CPP) $^ -o $(ELF)
 
 %.o: %.c
@@ -31,4 +33,4 @@ main_cc: $(SRC_O) $(SRC_O_CPP)
 	$(CPP) -c $< -o $@ $(INC)
 
 clean :
-	rm -rf *.out *.dSYM main *.o $(SRC_O) filebrowser.db $(ELF)
+	rm -rf *.out *.dSYM main *.o $(OBJ) filebrowser.db $(ELF)
