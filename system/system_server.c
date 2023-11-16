@@ -35,6 +35,7 @@ static void timer_expire_signal_handler()
     // man signal 확인
     // sem_post는 async-signal-safe function
     // 여기서는 sem_post 사용
+    sem_post(&global_timer_stopped);
 }
 
 static void system_timeout_handler()
@@ -48,12 +49,14 @@ static void system_timeout_handler()
 
 static void *timer_thread(void *not_used)
 {
+    sem_init(&global_timer_stopped, 0, 0);
     signal(SIGALRM, timer_expire_signal_handler);
     set_periodic_timer(1, 1);
 
 	while (!global_timer_stopped) {
         // 아래 sleep을 sem_wait 함수를 사용하여 동기화 처리
         // sleep(1);
+        sem_wait(&global_timer_stopped);
 		system_timeout_handler();
 	}
 	return 0;
