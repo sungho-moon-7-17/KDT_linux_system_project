@@ -11,6 +11,9 @@
 #include <stdio.h>
 #include <string.h>
 #include <mqueue.h>
+#include <sys/shm.h>
+#include <sys/ipc.h>
+#include <semaphore.h>
 
 #include <system_server.h>
 #include <gui.h>
@@ -84,22 +87,39 @@ void *sensor_thread(void* arg)
     int mqretcode;
     char *s = arg;
     toy_msg_t msg;
+
+    sem_t *sem_id;
     // 여기 추가: 공유메모리 키
+    int shmid, i = 0;
+    key_t shm_key =  2147483647;
+    shm_sensor_t * shm_addr;
 
     printf("%s", s);
 
+    shmid = shmget(shm_key, sizeof(shm_sensor_t), IPC_CREAT | 0666);
+
+    msg.msg_type = SENSOR_DATA;
+    msg.param1 = shm_key;
+    msg.param2 = 0;
+    mqretcode = mq_send(monitor_queue, (char *)&msg, sizeof(msg), 0);
+
     while (1) {
         posix_sleep_ms(5000);
+        sem_id = sem_open("/sem", O_RDWR);
+
         // 여기에 구현해 주세요.
         // 현재 고도/온도/기압 정보를  SYS V shared memory에 저장 후
         // monitor thread에 메시지 전송한다.
 
-        
-        msg.msg_type = 1;
-        // msg.param1 = shmid;
-        msg.param2 = 0;
-        mqretcode = mq_send(monitor_queue, (char *)&msg, sizeof(msg), 0);
-        assert(mqretcode == 0);
+        shm_addr = (shm_sensor_t *)shmat(shmid, NULL, 0);
+
+        shm_addr->temp = ++i % 30;
+        shm_addr->press = i % 760;
+        shm_addr->humidity = i % 100;
+
+        shmdt((void *)shm_addr);
+        sem_post(sem_id);
+        sem_close(sem_id);
     }
 
     return 0;

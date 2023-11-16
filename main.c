@@ -97,6 +97,8 @@ int main()
     retcode = create_message_queue(&camera_queue, "/camera_queue", NUM_MESSAGES, sizeof(toy_msg_t));
     assert(retcode == 0);
 
+    sem_open("/sem", O_CREAT | O_RDWR, 0777, 0);
+
     printf("시스템 서버를 생성합니다.\n");
     spid = create_system_server();
     printf("웹 서버를 생성합니다.\n");
