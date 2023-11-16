@@ -1,20 +1,11 @@
 {
     "files.associations": {
-        "*.json": "json",
         "unistd.h": "c",
-        "tlpi_hdr.h": "c",
-        "webserver.h": "c",
-        "default.h": "c",
-        "input.h": "c",
-        "execinfo.h": "c",
-        "ucontext.h": "c",
-        "prctl.h": "c",
-        "stdio.h": "c",
-        "signal.h": "c",
-        "stdlib.h": "c",
-        "time.h": "c",
-        "input_thread.h": "c",
         "system_server.h": "c",
-        "iostream": "cpp"
-    }
+        "input.h": "c",
+        "stdio.h": "c",
+        "iostream": "cpp",
+        "thread": "c"
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
 }
