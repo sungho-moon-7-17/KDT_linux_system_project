@@ -14,6 +14,7 @@
 #include <web_server.h>
 #include <camera_HAL.h>
 #include <toy_message.h>
+#include <shared_memory.h>
 
 pthread_mutex_t system_loop_mutex = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t  system_loop_cond  = PTHREAD_COND_INITIALIZER;
@@ -29,13 +30,16 @@ pthread_mutex_t toy_timer_mutex = PTHREAD_MUTEX_INITIALIZER;
 static sem_t global_timer_sem;
 static bool global_timer_stopped;
 
+static shm_sensor_t *the_sensor_info = NULL;
+void set_periodic_timer(long sec_delay, long usec_delay);
+
 static void timer_expire_signal_handler()
 {
     // signal 문맥에서는 비동기 시그널 안전 함수(async-signal-safe function) 사용
     // man signal 확인
     // sem_post는 async-signal-safe function
     // 여기서는 sem_post 사용
-    sem_post(&global_timer_stopped);
+    sem_post(&global_timer_sem);
 }
 
 static void system_timeout_handler()
@@ -43,20 +47,26 @@ static void system_timeout_handler()
     // 여기는 signal hander가 아니기 때문에 안전하게 mutex lock 사용 가능
     pthread_mutex_lock(&toy_timer_mutex);
     toy_timer++;
-    printf("toy_timer: %d\n", toy_timer);
     pthread_mutex_unlock(&toy_timer_mutex);
 }
 
 static void *timer_thread(void *not_used)
 {
-    sem_init(&global_timer_stopped, 0, 0);
     signal(SIGALRM, timer_expire_signal_handler);
     set_periodic_timer(1, 1);
 
 	while (!global_timer_stopped) {
+		int rc = sem_wait(&global_timer_sem);
+		if (rc == -1 && errno == EINTR) {
+		    continue;
+		}
+
+		if (rc == -1) {
+		    perror("sem_wait");
+		    exit(-1);
+		}
         // 아래 sleep을 sem_wait 함수를 사용하여 동기화 처리
         // sleep(1);
-        sem_wait(&global_timer_stopped);
 		system_timeout_handler();
 	}
 	return 0;
@@ -102,11 +112,14 @@ void *watchdog_thread(void* arg)
     return 0;
 }
 
+#define SENSOR_DATA 1
+
 void *monitor_thread(void* arg)
 {
     char *s = arg;
     int mqretcode;
     toy_msg_t msg;
+    int shmid;
 
     printf("%s", s);
 
@@ -117,6 +130,12 @@ void *monitor_thread(void* arg)
         printf("msg.type: %d\n", msg.msg_type);
         printf("msg.param1: %d\n", msg.param1);
         printf("msg.param2: %d\n", msg.param2);
+        if (msg.msg_type == SENSOR_DATA) {
+            shmid = msg.param1;
+            // 이곳에 구현해 주세요.
+            // 시스템 V 공유 메모리 사용하여 공유 메모리 데이터를 출력
+            // 공유 메모리 키는 메시지 큐에서 받은 값을 사용.
+        }
     }
 
     return 0;
@@ -186,7 +205,6 @@ void *camera_service_thread(void* arg)
 
 void signal_exit(void)
 {
-    /* 여기에 구현하세요..  종료 메시지를 보내도록.. */
     pthread_mutex_lock(&system_loop_mutex);
     system_loop_exit = true;
     pthread_cond_broadcast(&system_loop_cond);

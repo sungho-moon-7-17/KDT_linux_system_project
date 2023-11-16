@@ -18,6 +18,7 @@
 #include <web_server.h>
 #include <execinfo.h>
 #include <toy_message.h>
+#include <shared_memory.h>
 
 #define TOY_TOK_BUFSIZE 64
 #define TOY_TOK_DELIM " \t\r\n\a"
@@ -38,6 +39,7 @@ static mqd_t watchdog_queue;
 static mqd_t monitor_queue;
 static mqd_t disk_queue;
 static mqd_t camera_queue;
+static shm_sensor_t *the_sensor_info = NULL;
 
 void segfault_handler(int sig_num, siginfo_t * info, void * ucontext) {
   void * array[50];
@@ -79,12 +81,25 @@ void segfault_handler(int sig_num, siginfo_t * info, void * ucontext) {
  */
 void *sensor_thread(void* arg)
 {
+    int mqretcode;
     char *s = arg;
+    toy_msg_t msg;
+    // 여기 추가: 공유메모리 키
 
     printf("%s", s);
 
     while (1) {
         posix_sleep_ms(5000);
+        // 여기에 구현해 주세요.
+        // 현재 고도/온도/기압 정보를  SYS V shared memory에 저장 후
+        // monitor thread에 메시지 전송한다.
+
+        
+        msg.msg_type = 1;
+        // msg.param1 = shmid;
+        msg.param2 = 0;
+        mqretcode = mq_send(monitor_queue, (char *)&msg, sizeof(msg), 0);
+        assert(mqretcode == 0);
     }
 
     return 0;
@@ -297,6 +312,9 @@ int input()
     sa.sa_sigaction = segfault_handler;
 
     sigaction(SIGSEGV, &sa, NULL); /* ignore whether it works or not */
+
+    /* 센서 정보를 공유하기 위한, 시스템 V 공유 메모리를 생성한다 */
+    // 여기에 구현해주세요....
 
     /* 메시지 큐를 오픈 한다.
      * 하지만, 사실 fork로 생성했기 때문에 파일 디스크립터 공유되었음. 따따서, extern으로 사용 가능
