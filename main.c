@@ -40,6 +40,34 @@ sigchldHandler(int sig)
     errno = savedErrno;
 }
 
+int create_message_queue(mqd_t *msgq_ptr, const char *queue_name, int num_messages, int message_size)
+{
+    struct mq_attr mq_attrib;
+    int mq_errno;
+    mqd_t msgq;
+
+    printf("%s name=%s nummsgs=%d\n", __func__, queue_name, num_messages);
+
+    memset(&mq_attrib, 0, sizeof(mq_attrib));
+    mq_attrib.mq_msgsize = message_size;
+    mq_attrib.mq_maxmsg = num_messages;
+
+    mq_unlink(queue_name);
+    msgq = mq_open(queue_name, O_RDWR | O_CREAT | O_CLOEXEC, 0777, &mq_attrib);
+    if (msgq == -1) {
+        printf("%s queue=%s already exists so try to open\n",
+                            __func__, queue_name);
+        msgq = mq_open(queue_name, O_RDWR);
+        assert(msgq != (mqd_t) -1);
+        printf("%s queue=%s opened successfully\n",
+                            __func__, queue_name);
+        return -1;
+    }
+
+    *msgq_ptr = msgq;
+    return 0;
+}
+
 int main()
 {
     pid_t spid, gpid, ipid, wpid;
@@ -48,7 +76,6 @@ int main()
     sigset_t blockMask, emptyMask;
     struct sigaction sa;
     int retcode;
-    struct mq_attr attr;
 
     sigemptyset(&sa.sa_mask);
     sa.sa_flags = 0;
@@ -60,23 +87,15 @@ int main()
 
     printf("메인 함수입니다.\n");
 
-    /* 메시지 큐 속성을 초기화합니다. */
-    attr.mq_flags = 0;
-    attr.mq_maxmsg = 10;   
-    attr.mq_msgsize = sizeof(toy_msg_t);
-    attr.mq_curmsgs = 0;
-
     /* 메시지 큐를 생성한다. */
-    mq_unlink("/watchdog_queue");
-    mq_unlink("/monitor_queue");
-    mq_unlink("/disk_queue");
-    mq_unlink("/camera_queue");
-
-    watchdog_queue = mq_open("/watchdog_queue", O_CREAT | O_RDWR, 0777, &attr);
-    monitor_queue = mq_open("/monitor_queue", O_CREAT | O_RDWR, 0777, &attr);
-    disk_queue = mq_open("/disk_queue", O_CREAT | O_RDWR, 0777, &attr);
-    camera_queue = mq_open("/camera_queue", O_CREAT | O_RDWR, 0777, &attr);
-
+    retcode = create_message_queue(&watchdog_queue, "/watchdog_queue", NUM_MESSAGES, sizeof(toy_msg_t));
+    assert(retcode == 0);
+    retcode = create_message_queue(&monitor_queue, "/monitor_queue", NUM_MESSAGES, sizeof(toy_msg_t));
+    assert(retcode == 0);
+    retcode = create_message_queue(&disk_queue, "/disk_queue", NUM_MESSAGES, sizeof(toy_msg_t));
+    assert(retcode == 0);
+    retcode = create_message_queue(&camera_queue, "/camera_queue", NUM_MESSAGES, sizeof(toy_msg_t));
+    assert(retcode == 0);
 
     printf("시스템 서버를 생성합니다.\n");
     spid = create_system_server();

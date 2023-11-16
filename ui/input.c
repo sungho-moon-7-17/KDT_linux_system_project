@@ -298,7 +298,9 @@ int input()
 
     sigaction(SIGSEGV, &sa, NULL); /* ignore whether it works or not */
 
-    /* 메시지 큐를 오픈 한다. */
+    /* 메시지 큐를 오픈 한다.
+     * 하지만, 사실 fork로 생성했기 때문에 파일 디스크립터 공유되었음. 따따서, extern으로 사용 가능
+    */
     watchdog_queue = mq_open("/watchdog_queue", O_RDWR);
     assert(watchdog_queue != -1);
     monitor_queue = mq_open("/monitor_queue", O_RDWR);
