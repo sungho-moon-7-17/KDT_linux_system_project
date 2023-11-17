@@ -11,7 +11,8 @@
         "string_view": "c",
         "initializer_list": "c",
         "utility": "c",
-        "stdint.h": "c"
+        "stdint.h": "c",
+        "sysmacros.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }
