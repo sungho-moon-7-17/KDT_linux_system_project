@@ -202,6 +202,16 @@ int toy_read_elf_header(char **args)
     /* 여기서 mmap을 이용하여 파일 내용을 읽으세요.
      * fread 사용 X
      */
+    fstat(in_fd, &st);
+
+    map = (Elf64Hdr *) mmap(NULL, sizeof(Elf64Hdr), PROT_READ, MAP_SHARED, in_fd, 0);
+
+    printf("real size : %ld\n", st.st_size);
+    printf("Object file type : %d\n", map->e_type);
+    printf("Architecture : %d\n", map->e_machine);
+    printf("Object file version : %d\n", map->e_version);
+    printf("Entry point virtual address : %ld\n", map->e_entry);
+    printf("Program header table file offset : %ld\n", map->e_phoff);
 
 
     return 1;
