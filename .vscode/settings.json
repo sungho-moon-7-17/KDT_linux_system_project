@@ -6,7 +6,12 @@
         "stdio.h": "c",
         "iostream": "cpp",
         "thread": "c",
-        "shared_memory.h": "c"
+        "shared_memory.h": "c",
+        "array": "c",
+        "string_view": "c",
+        "initializer_list": "c",
+        "utility": "c",
+        "stdint.h": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

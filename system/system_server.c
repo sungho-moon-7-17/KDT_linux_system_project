@@ -7,9 +7,6 @@
 #include <sys/time.h>
 #include <time.h>
 #include <mqueue.h>
-#include <assert.h>
-#include <sys/shm.h>
-#include <sys/ipc.h>
 
 #include <system_server.h>
 #include <gui.h>
@@ -115,44 +112,32 @@ void *watchdog_thread(void* arg)
     return 0;
 }
 
+#define SENSOR_DATA 1
 
 void *monitor_thread(void* arg)
 {
     char *s = arg;
     int mqretcode;
     toy_msg_t msg;
-
-    sem_t *sem_id;
     int shmid;
-    key_t shm_key;
-    shm_sensor_t * shm_addr;
 
     printf("%s", s);
 
-    mqretcode = (int)mq_receive(monitor_queue, (void *)&msg, sizeof(toy_msg_t), 0);
-    assert(mqretcode >= 0);
-    printf("monitor_thread: 메시지가 도착했습니다.\n");
-    printf("msg.type: %d\n", msg.msg_type);
-    printf("msg.param1: %d\n", msg.param1);
-    printf("msg.param2: %d\n", msg.param2);
-    shm_key = msg.param1;
-
     while (1) {
-        sem_id = sem_open("/sem", O_RDWR);
-        sem_wait(sem_id);
-
-        // 이곳에 구현해 주세요.
-        // 시스템 V 공유 메모리 사용하여 공유 메모리 데이터를 출력
-        // 공유 메모리 키는 메시지 큐에서 받은 값을 사용.
-        shmid = shmget(shm_key, sizeof(shm_sensor_t), 0666);
-        shm_addr = (shm_sensor_t *)shmat(shmid, NULL, 0);
-
-        printf("Monitor-thread : show Sensor Data\nhumidity : %d\ntemperature : %d\npressure : %d\n\n",shm_addr->humidity,
-        shm_addr->temp, shm_addr->press);
-
-        shmdt((void *)shm_addr); 
-
-        sem_close(sem_id);
+        mqretcode = (int)mq_receive(monitor_queue, (void *)&msg, sizeof(toy_msg_t), 0);
+        assert(mqretcode >= 0);
+        printf("monitor_thread: 메시지가 도착했습니다.\n");
+        printf("msg.type: %d\n", msg.msg_type);
+        printf("msg.param1: %d\n", msg.param1);
+        printf("msg.param2: %d\n", msg.param2);
+        if (msg.msg_type == SENSOR_DATA) {
+            shmid = msg.param1;
+            the_sensor_info = toy_shm_attach(shmid);
+            printf("sensor temp: %d\n", the_sensor_info->temp);
+            printf("sensor info: %d\n", the_sensor_info->press);
+            printf("sensor humidity: %d\n", the_sensor_info->humidity);
+            toy_shm_detach(the_sensor_info);
+        }
     }
 
     return 0;
